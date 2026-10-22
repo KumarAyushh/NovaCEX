@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build output and tool caches
+dist/
+build/
+.turbo/
+coverage/
+*.tsbuildinfo
+
+# Secrets: never commit real env files (rule 0.2.8). The templates are kept.
+.env
+.env.*
+!.env.example
+
+# Generated Prisma client (regenerated from schema.prisma)
+packages/db/generated/
+
+# Profiles and logs
+*.cpuprofile
+*.log
+
+# Markdown docs are kept local only (owner's choice)
+*.md
+!/README.md
+
+# Editors and OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store

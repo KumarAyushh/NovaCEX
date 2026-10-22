@@ -1,0 +1,41 @@
+{
+  // Shared compiler settings. Every package's tsconfig.json "extends" this
+  // file, so all of the repo is checked by the same rules.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    // "bundler" matches how Bun resolves imports (no .js suffix needed).
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "types": ["bun"],
+
+    // --- Strictness (section P0.2) ---
+    "strict": true,
+    // arr[i] and map lookups return `T | undefined`. This forces us to
+    // handle a missing price level or order instead of crashing on it.
+    "noUncheckedIndexedAccess": true,
+    // `{ x?: string }` means "x is absent or a string", NOT "x may be
+    // undefined". Keeps optional fields such as clientOrderId honest.
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+
+    // --- Module hygiene ---
+    // Type-only imports must say `import type`, so they are erased cleanly.
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+
+    // We only typecheck; Bun executes the TypeScript directly.
+    "noEmit": true,
+
+    // Path aliases (P0.2). Bun's workspace linking already resolves these
+    // at runtime; the aliases make the editor jump to source.
+    "paths": {
+      "@novacex/shared": ["./packages/shared/src/index.ts"],
+      "@novacex/db": ["./packages/db/src/index.ts"]
+    }
+  }
+}
