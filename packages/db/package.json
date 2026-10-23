@@ -7,8 +7,20 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "generate": "prisma generate",
+    "migrate:dev": "bun --env-file=../../.env prisma migrate dev",
+    "migrate:deploy": "bun --env-file=../../.env prisma migrate deploy",
+    "migrate:status": "bun --env-file=../../.env prisma migrate status",
+    "studio": "bun --env-file=../../.env prisma studio",
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint .",
-    "test": "bun test"
+    "test": "bun --env-file=../../.env test"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1"
+  },
+  "devDependencies": {
+    "prisma": "7.10.1"
   }
 }

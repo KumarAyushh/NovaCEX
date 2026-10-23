@@ -1,8 +1,22 @@
 // @novacex/db: the Postgres schema (Prisma), its migrations and the shared client.
 //
-// Placeholder for now. The next step (P0.4/P0.5) adds Postgres in Docker,
-// prisma/schema.prisma with the `User` model and the first migration; then
-// this file will export the Prisma client. Only api and persister use it.
-// The engine never touches Postgres.
+// Only api and persister use this package. The engine never touches Postgres:
+// its state lives in memory and in the Redis command log.
+//
+// Layout of this package:
+//   prisma/schema.prisma   the tables (source of truth for the SQL)
+//   prisma/migrations/     committed SQL, one folder per schema change
+//   prisma.config.ts       CLI settings (where the schema/migrations live, DB url)
+//   generated/prisma/      TypeScript client built from the schema (gitignored;
+//                          rebuild with `bun run generate`)
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "../generated/prisma/client";
 
-export const DB_PACKAGE = "@novacex/db";
+export { Prisma, PrismaClient } from "../generated/prisma/client";
+export type { User } from "../generated/prisma/client";
+
+
+export function createDb(databaseUrl: string): PrismaClient {
+  const adapter = new PrismaPg({ connectionString: databaseUrl });
+  return new PrismaClient({ adapter });
+}
