@@ -1,0 +1,43 @@
+# Files Docker must NOT send to the build context (P0.4, ahead of P12.1).
+#
+# `docker build` uploads this directory to the Docker daemon, and any
+# `COPY . .` in a Dockerfile copies it into an image layer. Anything listed
+# here is never uploaded, so it can never end up inside an image, even by
+# mistake. Images can be pulled and inspected by anyone with access to them.
+
+# --- Secrets (pitfall 16): never in an image. Secrets are given at runtime. ---
+.env
+.env.*
+# The template has placeholders only, so it is safe to include.
+!.env.example
+*.pem
+*.key
+
+# --- Version control: large, and could hold secrets in old commits ---
+.git
+.gitignore
+
+# --- Dependencies and build output: the Dockerfile reinstalls/rebuilds these
+# inside the container, so local copies (built for this OS) must not leak in ---
+node_modules
+**/node_modules
+dist
+**/dist
+build
+**/build
+.turbo
+**/.turbo
+coverage
+*.tsbuildinfo
+packages/db/generated
+
+# --- Local tooling, logs, editor and OS files ---
+*.log
+*.cpuprofile
+.vscode
+.idea
+.DS_Store
+
+# --- Docker files themselves (not needed inside the image) ---
+docker-compose*.yml
+.dockerignore

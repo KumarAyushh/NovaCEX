@@ -1,0 +1,79 @@
+# Local infrastructure for NovaCEX (P0.4).
+#
+# Today this runs only the two stateful dependencies. The app services
+# (api, engine, persister, ws-gateway, web) join this file in P12.1.
+#
+#   redis     the command log (`cmd` stream), the event stream (`events`),
+#             reply/query lists and engine snapshots. AOF persistence is on,
+#             because the command log IS the source of truth: if Redis loses
+#             an acknowledged command, the engine cannot replay it.
+#   postgres  durable history (users, orders, fills, ledger, candles)
+#             written by the persister and read by the api.
+#
+# Configuration comes ONLY from the root `.env` file (gitignored), which
+# docker compose reads automatically. This file contains no credentials and
+# no fallback values, so nothing secret is ever committed.
+#
+# `${VAR:?message}` means "VAR is required": if it is missing or empty,
+# `docker compose` aborts with `message` instead of silently starting with
+# a guessed value. Setup: `cp .env.example .env`, then fill in real values.
+
+name: novacex
+
+services:
+  redis:
+    # Exact patch tag, so every machine runs the same build. P11.6 will
+    # additionally pin by digest.
+    image: redis:7.4.11-alpine
+    command:
+      - redis-server
+      # Append-only file: every write is logged to disk before Redis forgets it.
+      - --appendonly
+      - "yes"
+      # How often the AOF is fsync'ed. `everysec` can lose up to ~1 s of
+      # writes on a power cut; the chaos profile (P5.5) uses `always`.
+      - --appendfsync
+      - ${REDIS_APPENDFSYNC:?set REDIS_APPENDFSYNC in .env (see .env.example)}
+    ports:
+      # Bound to 127.0.0.1 only: nothing outside this machine can reach it.
+      - "127.0.0.1:${REDIS_PORT:?set REDIS_PORT in .env (see .env.example)}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16.15-alpine
+    environment:
+      # Read from .env at `docker compose up` time (runtime), never baked
+      # into an image or written in this file (pitfall 16, P11.2).
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env (see .env.example)}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (see .env.example)}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env (see .env.example)}
+    ports:
+      # Bound to 127.0.0.1 only, like Redis.
+      - "127.0.0.1:${POSTGRES_PORT:?set POSTGRES_PORT in .env (see .env.example)}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      # pg_isready succeeds only once the server accepts connections to our
+      # database, not merely when the process has started.
+      # `$$` escapes compose interpolation, so the variables are expanded by
+      # the shell INSIDE the container (where postgres already has them).
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+# Named volumes keep data across `make down` / `make up`.
+# `make clean` deletes them for a fresh start.
+# NOTE: Postgres only reads POSTGRES_USER/PASSWORD/DB when its volume is
+# EMPTY (first boot). After changing them in .env, run `make clean && make up`.
+volumes:
+  redis-data:
+  postgres-data:
