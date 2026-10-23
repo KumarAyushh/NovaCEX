@@ -1,0 +1,8 @@
+# Prettier skips these (it already skips node_modules and .gitignore'd paths).
+bun.lock
+packages/db/generated/
+**/dist/
+**/coverage/
+.turbo/
+# CLAUDE.md is the owner's contract; keep its hand formatting.
+CLAUDE.md
