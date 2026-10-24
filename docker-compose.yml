@@ -25,22 +25,37 @@ services:
     # Exact patch tag, so every machine runs the same build. P11.6 will
     # additionally pin by digest.
     image: redis:7.4.11-alpine
+    environment:
+      REDIS_USERNAME: ${REDIS_USERNAME:?set REDIS_USERNAME in .env (see .env.example)}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD in .env (see .env.example)}
+    # Login: write an ACL file (Redis's user list) from the env vars, then
+    # start Redis via the image's normal entrypoint (it drops root).
+    # The password sits in a file, not in the command line, so `ps` can't show it.
+    #   user default off      no login without a username + password
+    #   ~* &* +@all           our user may use every key, channel and command
+    # `$$VAR` is expanded by the shell inside the container, not by compose.
+    #
+    # --appendonly yes: every write is logged to disk (AOF) so the command log survives restarts.
+    # --appendfsync: how often the AOF is flushed. `everysec` can lose ~1 s of
+    # writes on a power cut; the chaos profile (P5.5) uses `always`.
+    entrypoint: ["/bin/sh", "-c"]
     command:
-      - redis-server
-      # Append-only file: every write is logged to disk before Redis forgets it.
-      - --appendonly
-      - "yes"
-      # How often the AOF is fsync'ed. `everysec` can lose up to ~1 s of
-      # writes on a power cut; the chaos profile (P5.5) uses `always`.
-      - --appendfsync
-      - ${REDIS_APPENDFSYNC:?set REDIS_APPENDFSYNC in .env (see .env.example)}
+      - |
+        umask 077
+        printf 'user default off\nuser %s on >%s ~* &* +@all\n' "$$REDIS_USERNAME" "$$REDIS_PASSWORD" > /tmp/users.acl
+        chown redis:redis /tmp/users.acl
+        exec docker-entrypoint.sh redis-server --aclfile /tmp/users.acl \
+          --appendonly yes \
+          --appendfsync ${REDIS_APPENDFSYNC:?set REDIS_APPENDFSYNC in .env (see .env.example)}
     ports:
       # Bound to 127.0.0.1 only: nothing outside this machine can reach it.
       - "127.0.0.1:${REDIS_PORT:?set REDIS_PORT in .env (see .env.example)}:6379"
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      # Logs in as our user; healthy only if Redis answers PONG.
+      # REDISCLI_AUTH passes the password without putting it in the args.
+      test: ["CMD-SHELL", 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli --user "$$REDIS_USERNAME" ping | grep -q PONG']
       interval: 5s
       timeout: 3s
       retries: 10
