@@ -9,3 +9,5 @@
 
 /** Version of the shared package; services log it at startup. */
 export const VERSION = "0.0.0";
+
+export * from "./env";

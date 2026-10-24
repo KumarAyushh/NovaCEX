@@ -15,7 +15,6 @@ import { PrismaClient } from "../generated/prisma/client";
 export { Prisma, PrismaClient } from "../generated/prisma/client";
 export type { User } from "../generated/prisma/client";
 
-
 export function createDb(databaseUrl: string): PrismaClient {
   const adapter = new PrismaPg({ connectionString: databaseUrl });
   return new PrismaClient({ adapter });

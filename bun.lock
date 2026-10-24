@@ -21,6 +21,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@novacex/shared": "workspace:*",
+        "zod": "4.6.7",
       },
     },
     "apps/engine": {
@@ -28,6 +29,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@novacex/shared": "workspace:*",
+        "zod": "4.6.7",
       },
     },
     "apps/persister": {
@@ -35,6 +37,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@novacex/shared": "workspace:*",
+        "zod": "4.6.7",
       },
     },
     "apps/web": {
@@ -42,6 +45,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@novacex/shared": "workspace:*",
+        "zod": "4.6.7",
       },
     },
     "apps/ws-gateway": {
@@ -49,6 +53,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@novacex/shared": "workspace:*",
+        "zod": "4.6.7",
       },
     },
     "packages/db": {
@@ -65,6 +70,9 @@
     "packages/shared": {
       "name": "@novacex/shared",
       "version": "0.0.0",
+      "dependencies": {
+        "zod": "4.6.7",
+      },
     },
   },
   "packages": {
@@ -571,6 +579,8 @@
     "yocto-queue": ["yocto-queue@0.1.0", "", {}, "sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q=="],
 
     "zeptomatch": ["zeptomatch@2.1.0", "", { "dependencies": { "grammex": "^3.1.11", "graphmatch": "^1.1.0" } }, "sha512-KiGErG2J0G82LSpniV0CtIzjlJ10E04j02VOudJsPyPwNZgGnRKQy7I1R7GMyg/QswnE4l7ohSGrQbQbjXPPDA=="],
+
+    "zod": ["zod@4.6.7", "", {}, "sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg=="],
 
     "@eslint-community/eslint-utils/eslint-visitor-keys": ["eslint-visitor-keys@3.4.3", "", {}, "sha512-wpc+LXeiyiisxPlEkUzU6svyS1frIO3Mgxj1fdy7Pm8Ygzguax2N3Fa/D/ag1WqbOprdI+uY6wMUl8/a2G+iag=="],
 
