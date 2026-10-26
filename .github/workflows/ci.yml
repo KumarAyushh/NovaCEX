@@ -1,0 +1,86 @@
+# CI (P0.7): on every push to main and every PR, check that the repo
+# installs, is formatted, lints, typechecks and passes all tests
+# against real Redis + Postgres. Same checks as `make check` locally.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push to the same branch cancels the older run still in progress.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Read-only token: CI never writes to the repo.
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Same Bun as local: read from "packageManager" in package.json.
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      # --frozen-lockfile: fail if bun.lock doesn't match package.json.
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      # Fast checks first; they need no databases.
+      - name: Format check
+        run: bun run format:check
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      # Fill the committed template with throwaway random passwords.
+      # A placeholder this step doesn't know about fails the build,
+      # so .env.example can't silently drift out of date.
+      - name: Create .env from .env.example
+        run: |
+          redis_pass=$(openssl rand -hex 24)
+          pg_pass=$(openssl rand -hex 24)
+          echo "::add-mask::$redis_pass"
+          echo "::add-mask::$pg_pass"
+          sed -e "s|<redis-host-port>|6379|" \
+              -e "s|<redis-user>|novacex|" \
+              -e "s|<redis-password>|$redis_pass|" \
+              -e "s|<everysec-or-always>|everysec|" \
+              -e "s|<postgres-host-port>|5432|" \
+              -e "s|<postgres-user>|novacex|" \
+              -e "s|<postgres-password>|$pg_pass|" \
+              -e "s|<postgres-database-name>|novacex|" \
+              .env.example > .env
+          if grep -n '<[a-z-]*>' .env; then
+            echo "::error::.env.example has a placeholder ci.yml doesn't fill (listed above)"
+            exit 1
+          fi
+
+      # The repo's own docker-compose.yml, not GitHub service containers:
+      # those can't run our Redis login setup, and this way CI tests the
+      # exact infra used in dev. --wait blocks until both are healthy.
+      - name: Start Redis + Postgres
+        run: docker compose up -d --wait
+
+      - name: Migrate database
+        working-directory: packages/db
+        run: bun run migrate:deploy
+
+      - name: Test
+        run: bun run test
+
+      - name: Container logs (on failure)
+        if: failure()
+        run: docker compose logs
